@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hub Bookmarklet UNEX - Gerador de Chamada</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      max-width: 500px;
+      text-align: center;
+      border-top: 6px solid #0a225c;
+    }
+    h1 {
+      color: #0a225c;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+    p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.5;
+    }
+    .instruction {
+      background: #eef2f7;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin: 20px 0;
+      text-align: left;
+    }
+    .bookmarklet-btn {
+      display: inline-block;
+      padding: 14px 28px;
+      background-color: #28a745;
+      color: #ffffff;
+      font-weight: bold;
+      font-size: 16px;
+      text-decoration: none;
+      border-radius: 6px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+      cursor: move;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+    .bookmarklet-btn:hover {
+      background-color: #218838;
+      transform: translateY(-2px);
+    }
+    .footer {
+      margin-top: 25px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h1>Gerador de Lista de Chamada UNEX</h1>
+    <p>Gere planilhas em formato Excel <b>.xlsx</b> formatadas no padrão UNEX com apenas um clique diretamente no sistema.</p>
+    
+    <div class="instruction">
+      <b>📌 Como instalar:</b><br>
+      <b>1.</b> Certifique-se de que a sua <i>Barra de Favoritos</i> está visível no navegador (<code>Ctrl + Shift + B</code> ou <code>Cmd + Shift + B</code>).<br>
+      <b>2.</b> Clique e <b>arraste o botão verde abaixo</b> para a sua barra de favoritos.
+    </div>
+
+    <!-- Botão com o Bookmarklet completo -->
+    <a class="bookmarklet-btn" href="javascript:(async function(){if(!window.ExcelJS){await new Promise(r=>{let sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';sc.onload=r;document.head.appendChild(sc);});}const s=m=>new Promise(r=>setTimeout(r,m));const g=i=>document.getElementById(i)?.value||document.getElementById(i)?.innerText||'';const d=g('ext-comp-1070')||g('blkTurma.sboDisciplina')||'';const t=g('blkTurma.ddoTurma');const c=prompt('Curso:','Medicina')||'Medicina';let a=[];const e=()=>{document.querySelectorAll('.x-grid3-col-fldAlunoNome').forEach(x=>{let n=x.innerText.trim();if(n&&n!=='NOME'&&!a.includes(n))a.push(n);});return a.length;};let b=document.querySelector('.x-tbar-page-next');alert('Extraindo...');let u=e();while(b&&!b.parentElement.classList.contains('x-item-disabled')){b.click();await s(2000);let n=e();if(n===u)break;u=n;b=document.querySelector('.x-tbar-page-next');}if(!a.length)return alert('Nenhum aluno encontrado.');a.sort((x,y)=>x.localeCompare(y,'pt-BR'));const wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('ADIANTAMENTO');ws.getColumn('A').width=12;ws.getColumn('B').width=62;ws.getColumn('C').width=48;ws.getCell('A1').value=`Curso: ${c}         SALA:`;ws.getCell('A2').value=`COMPONENTE CURRICULAR: ${d}`;ws.getCell('A3').value=`DATA:  /  /2026 TURMA: ${t}`;ws.getCell('A4').value='Unidade Física: CENTRO UNIVERSITÁRIO DE EXCELÊNCIA – UNEX';ws.getCell('A5').value='Unidade Responsável: Centro Universitário de Excelência – UNEX';const bd={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};for(let r=1;r<=5;r++){ws.mergeCells(`A${r}:B${r}`);let cl=ws.getCell(`A${r}`);cl.font={name:'Arial',size:10,bold:true};cl.border=bd;}ws.getCell('A6').value='Numeração';ws.getCell('B6').value='NOME';['A6','B6','C6'].forEach(r=>{let cl=ws.getCell(r);cl.font={name:'Arial',size:10,bold:true};cl.border=bd;});a.forEach((n,i)=>{let r=7+i,ca=ws.getCell(`A${r}`),cb=ws.getCell(`B${r}`),cc=ws.getCell(`C${r}`);ca.value=i+1;ca.font={name:'Arial',size:10,bold:true};ca.alignment={horizontal:'center'};ca.border=bd;cb.value=n;cb.font={name:'Arial',size:10,bold:true};cb.border=bd;cc.border=bd;});ws.mergeCells('C1:C5');ws.getCell('C1').border=bd;try{const res=await fetch('https://raw.githubusercontent.com/marquinhos-unex/UNEX_LOGO/main/LOGO_UNEX.png');const ab=await(await res.blob()).arrayBuffer();const imgId=wb.addImage({buffer:ab,extension:'png'});ws.addImage(imgId,{tl:{col:2,row:0},br:{col:3,row:5},editAs:'twoCell'});}catch(e){}const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const l=document.createElement('a');l.href=URL.createObjectURL(blob);l.download=`Lista_UNEX_${t||'Turma'}.xlsx`;document.body.appendChild(l);l.click();l.remove();alert('Planilha gerada com sucesso!');})();">
+      📋 Gerar Chamada UNEX
+    </a>
+
+    <div class="footer">
+      Após salvar, abra a página da turma e clique no botão salvo na sua barra de favoritos.
+    </div>
+  </div>
+
+</body>
+</html>
