@@ -1,0 +1,136 @@
+(async function(){
+  if (!window.ExcelJS) {
+    await new Promise(r => {
+      let sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js';
+      sc.onload = r;
+      document.head.appendChild(sc);
+    });
+  }
+
+  const s = ms => new Promise(r => setTimeout(r, ms));
+  const getVal = id => document.getElementById(id)?.value || document.getElementById(id)?.innerText || '';
+  
+  const disciplina = getVal('ext-comp-1070') || getVal('blkTurma.sboDisciplina') || '';
+  const turma = getVal('blkTurma.ddoTurma');
+  const curso = prompt('Confirme ou digite o nome do Curso:', 'Medicina') || 'Medicina';
+  
+  let todosOsAlunos = [];
+  let ultimaAssinatura = '';
+
+  const extrair = () => {
+    let nomesNaPagina = [];
+    document.querySelectorAll('.x-grid3-col-fldAlunoNome').forEach(el => {
+      let n = el.innerText.trim();
+      if (n && n !== 'NOME' && !todosOsAlunos.includes(n)) {
+        todosOsAlunos.push(n);
+        nomesNaPagina.push(n);
+      }
+    });
+    return nomesNaPagina.join(',');
+  };
+
+  let btn = document.querySelector('.x-tbar-page-next');
+  alert('Extraindo alunos de todas as páginas...');
+
+  let paginaAtualSig = extrair();
+  ultimaAssinatura = paginaAtualSig;
+
+  while (btn && !btn.parentElement.classList.contains('x-item-disabled')) {
+    btn.click();
+    await s(2000);
+    let novaSig = extrair();
+    if (novaSig === ultimaAssinatura || !novaSig) break;
+    ultimaAssinatura = novaSig;
+    btn = document.querySelector('.x-tbar-page-next');
+  }
+
+  if (todosOsAlunos.length === 0) {
+    alert('Atenção: Nenhum aluno encontrado.');
+    return;
+  }
+
+  todosOsAlunos.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('ADIANTAMENTO');
+
+  ws.getColumn('A').width = 12;
+  ws.getColumn('B').width = 62;
+  ws.getColumn('C').width = 48;
+
+  ws.getCell('A1').value = `Curso: ${curso}         SALA:`;
+  ws.getCell('A2').value = `COMPONENTE CURRICULAR: ${disciplina}`;
+  ws.getCell('A3').value = `DATA:  /  /2026 TURMA: ${turma}`;
+  ws.getCell('A4').value = 'Unidade Física: CENTRO UNIVERSITÁRIO DE EXCELÊNCIA – UNEX';
+  ws.getCell('A5').value = 'Unidade Responsável: Centro Universitário de Excelência – UNEX';
+
+  const bd = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
+
+  for (let r = 1; r <= 5; r++) {
+    ws.mergeCells(`A${r}:B${r}`);
+    let cl = ws.getCell(`A${r}`);
+    cl.font = { name: 'Arial', size: 10, bold: true };
+    cl.border = bd;
+  }
+
+  ws.getCell('A6').value = 'Numeração';
+  ws.getCell('B6').value = 'NOME';
+  ['A6', 'B6', 'C6'].forEach(r => {
+    let cl = ws.getCell(r);
+    cl.font = { name: 'Arial', size: 10, bold: true };
+    cl.border = bd;
+  });
+
+  todosOsAlunos.forEach((n, i) => {
+    let r = 7 + i;
+    let ca = ws.getCell(`A${r}`);
+    let cb = ws.getCell(`B${r}`);
+    let cc = ws.getCell(`C${r}`);
+
+    ca.value = i + 1;
+    ca.font = { name: 'Arial', size: 10, bold: true };
+    ca.alignment = { horizontal: 'center' };
+    ca.border = bd;
+
+    cb.value = n;
+    cb.font = { name: 'Arial', size: 10, bold: true };
+    cb.border = bd;
+
+    cc.border = bd;
+  });
+
+  ws.mergeCells('C1:C5');
+  ws.getCell('C1').border = bd;
+
+  try {
+    const rawLogoUrl = 'https://raw.githubusercontent.com/marquinhos-unex/UNEX_LOGO/main/LOGO_UNEX.png';
+    const res = await fetch(rawLogoUrl);
+    const blobLogo = await res.blob();
+    const arrayBuffer = await blobLogo.arrayBuffer();
+
+    const imageId = wb.addImage({
+      buffer: arrayBuffer,
+      extension: 'png',
+    });
+
+    ws.addImage(imageId, {
+      tl: { col: 2, row: 0 },
+      br: { col: 3, row: 5 },
+      editAs: 'twoCell'
+    });
+  } catch(err) {
+    console.warn('Erro ao carregar a imagem:', err);
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const l = document.createElement('a');
+  l.href = URL.createObjectURL(blob);
+  l.download = `Lista_UNEX_${turma || 'Turma'}.xlsx`;
+  document.body.appendChild(l);
+  l.click();
+  l.remove();
+
+  alert('Planilha gerada com sucesso!');
+})();
